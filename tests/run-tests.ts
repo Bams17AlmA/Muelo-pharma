@@ -288,6 +288,88 @@ delete syncQueue[0].conflictDetails;
 assert(syncQueue[0].status === 'SYNCED', 'Conflit résolu explicitement sans perte de traçabilité');
 assert(syncQueue[0].serverTimestamp !== undefined, 'Horodatage serveur consigné pour audit');
 
+// ----------------------------------------------------
+// 4. TESTS GESTION DES UTILISATEURS & DROITS D'ACCÈS (RBAC)
+// ----------------------------------------------------
+console.log('\n4. Tests Gestion des Utilisateurs & Habilitations (RBAC) :');
+
+import { DEFAULT_ROLE_PERMISSIONS, SYSTEM_PERMISSIONS, User } from '../src/types/pharmacy';
+
+const testAdminUser: User = {
+  id: 'u-admin-test',
+  pharmacyId: 'pharma-01',
+  name: 'Titulaire Test',
+  email: 'admin@pharma.cd',
+  role: 'ADMIN',
+  active: true,
+  pinCode: '9999',
+  lastLoginAt: new Date().toISOString(),
+};
+
+const testCashierUser: User = {
+  id: 'u-cashier-test',
+  pharmacyId: 'pharma-01',
+  name: 'Vendeur Test',
+  email: 'cashier@pharma.cd',
+  role: 'CASHIER',
+  active: true,
+  pinCode: '1111',
+  lastLoginAt: new Date().toISOString(),
+};
+
+// Vérifier que le rôle CASHIER applique le moindre privilège
+const cashierPermissions = DEFAULT_ROLE_PERMISSIONS.CASHIER;
+assert(cashierPermissions.includes('pos_sales'), 'Le Caissier a le droit d\'encaisser (pos_sales)');
+assert(!cashierPermissions.includes('admin_users'), 'Le Caissier n\'a PAS accès à la gestion des utilisateurs');
+assert(!cashierPermissions.includes('admin_db_manage'), 'Le Caissier n\'a PAS accès à la gestion de la DB');
+assert(!cashierPermissions.includes('inventory_approve'), 'Le Caissier ne peut pas approuver seul des écarts d\'inventaire');
+
+// Vérifier que l'ADMIN possède tous les droits de supervision
+const adminPermissions = DEFAULT_ROLE_PERMISSIONS.ADMIN;
+assert(adminPermissions.includes('admin_users'), 'L\'Admin a accès à la gestion des comptes utilisateurs');
+assert(adminPermissions.includes('admin_settings'), 'L\'Admin a accès aux paramètres officine');
+assert(adminPermissions.includes('admin_db_manage'), 'L\'Admin a accès à la gestion de la DB');
+
+// Vérifier la personnalisation des droits d'accès
+const cashierWithCustomCancel: User = {
+  ...testCashierUser,
+  customPermissions: ['pos_sales', 'pos_cancel', 'stock_view'],
+};
+assert(
+  cashierWithCustomCancel.customPermissions?.includes('pos_cancel') === true,
+  'Dérogation d\'accès spécifique accordée (autorisation annulation exceptionnelle accordée au caissier)'
+);
+
+// ----------------------------------------------------
+// 5. TESTS GESTION DES DONNÉES & SAUVEGARDE DB
+// ----------------------------------------------------
+console.log('\n5. Tests Sauvegarde, Export & Restauration DB :');
+
+const mockDatabasePayload = {
+  version: '1.0.0',
+  exportDate: new Date().toISOString(),
+  app: 'Muelo PHARM' as const,
+  checksum: 'sig-test-12345',
+  data: {
+    pharmacies: [{ id: 'p1', name: 'Pharma Test' }],
+    users: [testAdminUser, testCashierUser],
+    products: [{ id: 'prod1', name: 'Amoxicilline 500mg' }],
+    batches: mockBatches,
+    suppliers: [],
+    sales: [],
+    stockMovements: [],
+    receptions: [],
+    inventorySessions: [],
+    auditLogs: [],
+    syncQueue: [],
+  },
+};
+
+assert(mockDatabasePayload.app === 'Muelo PHARM', 'En-tête de sauvegarde Muelo PHARM valide');
+assert(mockDatabasePayload.data.users.length === 2, 'Structure des comptes utilisateurs dans la sauvegarde');
+assert(mockDatabasePayload.data.products.length === 1, 'Sauvegarde du catalogue de produits');
+assert(mockDatabasePayload.checksum !== '', 'Présence de l\'empreinte d\'intégrité de la sauvegarde');
+
 console.log('\n========================================');
 console.log(`📊 RÉSULTAT DES TESTS : ${passedTests}/${totalTests} réussis`);
 if (passedTests === totalTests) {

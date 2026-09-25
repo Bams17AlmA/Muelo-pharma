@@ -4,10 +4,15 @@
  */
 
 import {
+  AuditActionType,
   AuditLog,
   Batch,
+  DatabaseBackupPayload,
+  DatabaseStats,
+  DEFAULT_ROLE_PERMISSIONS,
   InventoryCountItem,
   InventorySession,
+  PermissionKey,
   Pharmacy,
   Product,
   PurchaseOrder,
@@ -790,6 +795,159 @@ class PharmacyDataStore {
       details: `Changement de rôle de l'utilisateur vers ${newRole}`,
     });
     this.notify();
+  }
+
+  public hasPermission(permission: PermissionKey, user?: User): boolean {
+    const targetUser = user || this.getCurrentUser();
+    if (!targetUser || !targetUser.active) return false;
+
+    // Si des permissions personnalisées explicites existent
+    if (targetUser.customPermissions && targetUser.customPermissions.length > 0) {
+      return targetUser.customPermissions.includes(permission);
+    }
+
+    // Sinon appliquer les permissions par défaut du rôle
+    const defaultPerms = DEFAULT_ROLE_PERMISSIONS[targetUser.role] || [];
+    return defaultPerms.includes(permission);
+  }
+
+  public createUser(userData: {
+    name: string;
+    email: string;
+    role: UserRole;
+    phone?: string;
+    pinCode?: string;
+    pharmacyId?: string;
+    customPermissions?: PermissionKey[];
+  }): User {
+    const currentPharmacy = this.getCurrentPharmacy();
+    const newUser: User = {
+      id: generateUUID(),
+      pharmacyId: userData.pharmacyId || currentPharmacy.id,
+      name: userData.name.trim(),
+      email: userData.email.trim().toLowerCase(),
+      role: userData.role,
+      phone: userData.phone?.trim() || '',
+      active: true,
+      pinCode: userData.pinCode?.trim() || '1234',
+      customPermissions: userData.customPermissions,
+      lastLoginAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    };
+
+    const users = this.getUsers();
+    users.push(newUser);
+    this.setItem(KEYS.USERS, users);
+
+    this.appendAuditLog({
+      actionType: 'USER_CREATE',
+      entityType: 'User',
+      entityId: newUser.id,
+      details: `Création du compte utilisateur : ${newUser.name} (${newUser.email}) [${newUser.role}]`,
+    });
+
+    this.notify();
+    return newUser;
+  }
+
+  public updateUser(updated: User): void {
+    const users = this.getUsers().map((u) => (u.id === updated.id ? updated : u));
+    this.setItem(KEYS.USERS, users);
+
+    this.appendAuditLog({
+      actionType: 'USER_UPDATE',
+      entityType: 'User',
+      entityId: updated.id,
+      details: `Mise à jour du compte utilisateur : ${updated.name} (Rôle: ${updated.role}, Actif: ${updated.active})`,
+    });
+
+    this.notify();
+  }
+
+  public toggleUserActive(userId: string): { success: boolean; message: string } {
+    const current = this.getCurrentUser();
+    if (current.id === userId) {
+      return { success: false, message: 'Impossible de désactiver votre propre compte actif.' };
+    }
+
+    const users = this.getUsers();
+    const target = users.find((u) => u.id === userId);
+    if (!target) return { success: false, message: 'Utilisateur introuvable.' };
+
+    target.active = !target.active;
+    this.setItem(KEYS.USERS, users);
+
+    this.appendAuditLog({
+      actionType: 'USER_UPDATE',
+      entityType: 'User',
+      entityId: userId,
+      details: `Statut du compte ${target.name} basculé vers : ${target.active ? 'ACTIF' : 'SUSPENDU'}`,
+    });
+
+    this.notify();
+    return { success: true, message: `Utilisateur ${target.active ? 'activé' : 'suspendu'} avec succès.` };
+  }
+
+  public resetUserPin(userId: string, newPin: string): void {
+    const users = this.getUsers();
+    const target = users.find((u) => u.id === userId);
+    if (target) {
+      target.pinCode = newPin;
+      this.setItem(KEYS.USERS, users);
+
+      this.appendAuditLog({
+        actionType: 'USER_PIN_RESET',
+        entityType: 'User',
+        entityId: userId,
+        details: `Réinitialisation du code PIN d'autorisation pour l'utilisateur ${target.name}`,
+      });
+
+      this.notify();
+    }
+  }
+
+  public updateUserPermissions(userId: string, customPermissions?: PermissionKey[]): void {
+    const users = this.getUsers().map((u) => (u.id === userId ? { ...u, customPermissions } : u));
+    this.setItem(KEYS.USERS, users);
+
+    this.appendAuditLog({
+      actionType: 'ROLE_CHANGE',
+      entityType: 'User',
+      entityId: userId,
+      details: `Attribution de droits d'accès personnalisés pour l'utilisateur`,
+    });
+
+    this.notify();
+  }
+
+  public deleteUser(userId: string): { success: boolean; message: string } {
+    const current = this.getCurrentUser();
+    if (current.id === userId) {
+      return { success: false, message: 'Impossible de supprimer votre propre compte actif.' };
+    }
+
+    const users = this.getUsers();
+    const target = users.find((u) => u.id === userId);
+    if (!target) return { success: false, message: 'Utilisateur introuvable.' };
+
+    // Vérifier qu'il reste au moins un ADMIN actif
+    const remainingAdmins = users.filter((u) => u.id !== userId && u.role === 'ADMIN' && u.active);
+    if (target.role === 'ADMIN' && remainingAdmins.length === 0) {
+      return { success: false, message: 'Impossible de supprimer le dernier Administrateur du système.' };
+    }
+
+    const filtered = users.filter((u) => u.id !== userId);
+    this.setItem(KEYS.USERS, filtered);
+
+    this.appendAuditLog({
+      actionType: 'USER_DELETE',
+      entityType: 'User',
+      entityId: userId,
+      details: `Suppression définitive du compte utilisateur ${target.name} (${target.email})`,
+    });
+
+    this.notify();
+    return { success: true, message: 'Utilisateur supprimé avec succès.' };
   }
 
   // --- Offline Mode Simulation ---
@@ -1735,6 +1893,153 @@ class PharmacyDataStore {
     logs.unshift(newLog); // Plus récent en premier
     this.setItem(KEYS.AUDIT_LOGS, logs);
     return newLog;
+  }
+
+  // --- Gestion de la Base de Données (Admin) ---
+  public getDatabaseStats(): DatabaseStats {
+    const pharmacies = this.getItem<Pharmacy[]>(KEYS.PHARMACIES, INITIAL_PHARMACIES);
+    const users = this.getItem<User[]>(KEYS.USERS, INITIAL_USERS);
+    const products = this.getItem<Product[]>(KEYS.PRODUCTS, []);
+    const batches = this.getItem<Batch[]>(KEYS.BATCHES, []);
+    const sales = this.getItem<Sale[]>(KEYS.SALES, []);
+    const movements = this.getItem<StockMovement[]>(KEYS.STOCK_MOVEMENTS, []);
+    const receptions = this.getItem<Reception[]>(KEYS.RECEPTIONS, []);
+    const inventory = this.getItem<InventorySession[]>(KEYS.INVENTORY_SESSIONS, []);
+    const auditLogs = this.getItem<AuditLog[]>(KEYS.AUDIT_LOGS, []);
+    const syncQueue = this.getItem<SyncEvent[]>(KEYS.SYNC_QUEUE, []);
+
+    let totalBytes = 0;
+    try {
+      for (const key of Object.values(KEYS)) {
+        const item = localStorage.getItem(key);
+        if (item) totalBytes += item.length * 2;
+      }
+    } catch {
+      totalBytes = 256 * 1024;
+    }
+
+    const lastBackup = localStorage.getItem(STORAGE_PREFIX + 'last_backup_date') || undefined;
+
+    return {
+      pharmaciesCount: pharmacies.length,
+      usersCount: users.length,
+      productsCount: products.length,
+      batchesCount: batches.length,
+      salesCount: sales.length,
+      movementsCount: movements.length,
+      receptionsCount: receptions.length,
+      inventoryCount: inventory.length,
+      auditLogsCount: auditLogs.length,
+      syncQueueCount: syncQueue.length,
+      estimatedSizeBytes: totalBytes,
+      lastBackupDate: lastBackup,
+    };
+  }
+
+  public exportDatabaseBackup(): DatabaseBackupPayload {
+    const payload: DatabaseBackupPayload = {
+      version: '1.0.0',
+      exportDate: new Date().toISOString(),
+      app: 'Muelo PHARM',
+      checksum: generateUUID(),
+      data: {
+        pharmacies: this.getItem<Pharmacy[]>(KEYS.PHARMACIES, INITIAL_PHARMACIES),
+        users: this.getItem<User[]>(KEYS.USERS, INITIAL_USERS),
+        products: this.getItem<Product[]>(KEYS.PRODUCTS, []),
+        batches: this.getItem<Batch[]>(KEYS.BATCHES, []),
+        suppliers: this.getItem<Supplier[]>(KEYS.SUPPLIERS, INITIAL_SUPPLIERS),
+        sales: this.getItem<Sale[]>(KEYS.SALES, []),
+        stockMovements: this.getItem<StockMovement[]>(KEYS.STOCK_MOVEMENTS, []),
+        receptions: this.getItem<Reception[]>(KEYS.RECEPTIONS, []),
+        inventorySessions: this.getItem<InventorySession[]>(KEYS.INVENTORY_SESSIONS, []),
+        auditLogs: this.getItem<AuditLog[]>(KEYS.AUDIT_LOGS, []),
+        syncQueue: this.getItem<SyncEvent[]>(KEYS.SYNC_QUEUE, []),
+      },
+    };
+
+    localStorage.setItem(STORAGE_PREFIX + 'last_backup_date', payload.exportDate);
+
+    this.appendAuditLog({
+      actionType: 'DB_BACKUP_EXPORT',
+      entityType: 'Database',
+      entityId: 'full_backup',
+      details: `Exportation sauvegarde JSON (${payload.data.products.length} produits, ${payload.data.batches.length} lots, ${payload.data.sales.length} ventes, ${payload.data.users.length} comptes)`,
+    });
+
+    this.notify();
+    return payload;
+  }
+
+  public importDatabaseBackup(backup: DatabaseBackupPayload): { success: boolean; message: string } {
+    if (!backup || !backup.data || !Array.isArray(backup.data.users) || !Array.isArray(backup.data.products)) {
+      return { success: false, message: 'Fichier de sauvegarde invalide ou corrompu.' };
+    }
+
+    try {
+      if (backup.data.pharmacies) this.setItem(KEYS.PHARMACIES, backup.data.pharmacies);
+      if (backup.data.users) this.setItem(KEYS.USERS, backup.data.users);
+      if (backup.data.products) this.setItem(KEYS.PRODUCTS, backup.data.products);
+      if (backup.data.batches) this.setItem(KEYS.BATCHES, backup.data.batches);
+      if (backup.data.suppliers) this.setItem(KEYS.SUPPLIERS, backup.data.suppliers);
+      if (backup.data.sales) this.setItem(KEYS.SALES, backup.data.sales);
+      if (backup.data.stockMovements) this.setItem(KEYS.STOCK_MOVEMENTS, backup.data.stockMovements);
+      if (backup.data.receptions) this.setItem(KEYS.RECEPTIONS, backup.data.receptions);
+      if (backup.data.inventorySessions) this.setItem(KEYS.INVENTORY_SESSIONS, backup.data.inventorySessions);
+      if (backup.data.auditLogs) this.setItem(KEYS.AUDIT_LOGS, backup.data.auditLogs);
+      if (backup.data.syncQueue) this.setItem(KEYS.SYNC_QUEUE, backup.data.syncQueue);
+
+      this.appendAuditLog({
+        actionType: 'DB_RESTORE',
+        entityType: 'Database',
+        entityId: backup.checksum || 'restored_file',
+        details: `Restauration complète de la base de données depuis une archive du ${new Date(backup.exportDate).toLocaleString('fr-FR')}`,
+      });
+
+      this.notify();
+      return { success: true, message: 'Base de données restaurée avec succès !' };
+    } catch (err: any) {
+      return { success: false, message: `Erreur d'importation : ${err.message || 'inconnue'}` };
+    }
+  }
+
+  public purgeOperationalData(): void {
+    this.setItem(KEYS.SALES, []);
+    this.setItem(KEYS.STOCK_MOVEMENTS, []);
+    this.setItem(KEYS.RECEPTIONS, []);
+    this.setItem(KEYS.INVENTORY_SESSIONS, []);
+    this.setItem(KEYS.SYNC_QUEUE, []);
+
+    this.appendAuditLog({
+      actionType: 'DB_PURGE',
+      entityType: 'Database',
+      entityId: 'operational_data',
+      details: 'Purge des données de transactions opérationnelles (ventes, BL et inventaires archivés)',
+    });
+
+    this.notify();
+  }
+
+  public resetDatabaseToDefaults(): void {
+    for (const key of Object.values(KEYS)) {
+      try {
+        localStorage.removeItem(key);
+      } catch {}
+    }
+
+    this.setItem(KEYS.PHARMACIES, INITIAL_PHARMACIES);
+    this.setItem(KEYS.CURRENT_PHARMACY_ID, 'pharma-kin-01');
+    this.setItem(KEYS.USERS, INITIAL_USERS);
+    this.setItem(KEYS.CURRENT_USER_ID, 'user-admin-01');
+    this.setItem(KEYS.SUPPLIERS, INITIAL_SUPPLIERS);
+
+    this.appendAuditLog({
+      actionType: 'DB_RESET',
+      entityType: 'Database',
+      entityId: 'factory_reset',
+      details: 'Réinitialisation d\'usine de la base de données locale (jeux d\'essais RDC)',
+    });
+
+    this.notify();
   }
 }
 

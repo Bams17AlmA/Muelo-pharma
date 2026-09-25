@@ -5,6 +5,144 @@
 
 export type UserRole = 'ADMIN' | 'MANAGER' | 'CASHIER';
 
+export type PermissionKey =
+  | 'pos_sales'              // Effectuer des encaissements et ventes comptoir
+  | 'pos_cancel'             // Annuler une vente avec motif
+  | 'stock_view'             // Consulter le catalogue des produits et lots FEFO
+  | 'stock_manage'           // Créer et modifier des médicaments et fiches produits
+  | 'stock_quarantine'       // Changer le statut d'un lot (quarantaine, rappel sanitaire)
+  | 'receptions_create'      // Saisir et valider les réceptions fournisseurs (BL)
+  | 'inventory_count'        // Saisir les comptages physiques d'inventaire tournant
+  | 'inventory_approve'      // Approuver les écarts d'inventaire (code PIN requis)
+  | 'audit_view'             // Consulter le journal d'audit inaltérable (append-only)
+  | 'reports_export'         // Exporter les états financiers et rapports réglementaires
+  | 'admin_users'            // Créer, modifier des comptes utilisateurs et attribuer les rôles
+  | 'admin_settings'         // Configurer les paramètres légaux et fiscaux de l'officine
+  | 'admin_db_manage';       // Sauvegarder, restaurer et réinitialiser les données de la DB
+
+export interface PermissionDefinition {
+  key: PermissionKey;
+  label: string;
+  category: 'VENTE' | 'STOCK' | 'INVENTAIRE' | 'AUDIT_RAPPORTS' | 'ADMINISTRATION';
+  description: string;
+}
+
+export const SYSTEM_PERMISSIONS: PermissionDefinition[] = [
+  {
+    key: 'pos_sales',
+    label: 'Ventes au détail / Caisse',
+    category: 'VENTE',
+    description: 'Encaisser les ventes au comptoir en CDF et USD avec calcul de monnaie',
+  },
+  {
+    key: 'pos_cancel',
+    label: 'Annulation de vente',
+    category: 'VENTE',
+    description: 'Annuler une transaction de caisse et réintégrer les lots en stock (Superviseur)',
+  },
+  {
+    key: 'stock_view',
+    label: 'Consultation des stocks',
+    category: 'STOCK',
+    description: 'Consulter les niveaux de stocks et les priorités FEFO des lots',
+  },
+  {
+    key: 'stock_manage',
+    label: 'Gestion du référentiel produit',
+    category: 'STOCK',
+    description: 'Créer de nouveaux médicaments, modifier dosages et seuils d\'alerte',
+  },
+  {
+    key: 'stock_quarantine',
+    label: 'Gestion des lots & Quarantaine',
+    category: 'STOCK',
+    description: 'Isoler un lot suspect ou appliquer un rappel sanitaire ministériel',
+  },
+  {
+    key: 'receptions_create',
+    label: 'Réceptions fournisseurs',
+    category: 'STOCK',
+    description: 'Contrôler les bordereaux de livraison (BL), lots et dates de péremption',
+  },
+  {
+    key: 'inventory_count',
+    label: 'Comptage physique d\'inventaire',
+    category: 'INVENTAIRE',
+    description: 'Saisir les quantités physiques constatées lors des inventaires tournants',
+  },
+  {
+    key: 'inventory_approve',
+    label: 'Approbation des écarts d\'inventaire',
+    category: 'INVENTAIRE',
+    description: 'Valider les ajustements de stock et répercussions financières',
+  },
+  {
+    key: 'audit_view',
+    label: 'Consultation du journal d\'audit',
+    category: 'AUDIT_RAPPORTS',
+    description: 'Consulter l\'historique inaltérable scellé par empreintes SHA-256',
+  },
+  {
+    key: 'reports_export',
+    label: 'Exports et rapports d\'activité',
+    category: 'AUDIT_RAPPORTS',
+    description: 'Générer et exporter les états journaliers et valorisations en CSV/JSON',
+  },
+  {
+    key: 'admin_users',
+    label: 'Gestion des utilisateurs & rôles',
+    category: 'ADMINISTRATION',
+    description: 'Créer des comptes, réinitialiser les PIN et définir les droits d\'accès',
+  },
+  {
+    key: 'admin_settings',
+    label: 'Paramètres généraux de l\'officine',
+    category: 'ADMINISTRATION',
+    description: 'Modifier le taux officiel USD/CDF, la licence sanitaire et informations légales',
+  },
+  {
+    key: 'admin_db_manage',
+    label: 'Gestion de la base de données',
+    category: 'ADMINISTRATION',
+    description: 'Sauvegarde complète, restauration JSON, purge et réinitialisation de la DB',
+  },
+];
+
+export const DEFAULT_ROLE_PERMISSIONS: Record<UserRole, PermissionKey[]> = {
+  ADMIN: [
+    'pos_sales',
+    'pos_cancel',
+    'stock_view',
+    'stock_manage',
+    'stock_quarantine',
+    'receptions_create',
+    'inventory_count',
+    'inventory_approve',
+    'audit_view',
+    'reports_export',
+    'admin_users',
+    'admin_settings',
+    'admin_db_manage',
+  ],
+  MANAGER: [
+    'pos_sales',
+    'pos_cancel',
+    'stock_view',
+    'stock_manage',
+    'stock_quarantine',
+    'receptions_create',
+    'inventory_count',
+    'inventory_approve',
+    'audit_view',
+    'reports_export',
+  ],
+  CASHIER: [
+    'pos_sales',
+    'stock_view',
+    'inventory_count',
+  ],
+};
+
 export interface User {
   id: string;
   pharmacyId: string;
@@ -14,7 +152,9 @@ export interface User {
   phone?: string;
   active: boolean;
   pinCode?: string; // Code PIN rapide pour autorisations (ex: annulation caisse)
+  customPermissions?: PermissionKey[]; // Droits personnalisés s'ils dérogent au rôle
   lastLoginAt: string;
+  createdAt?: string;
 }
 
 export interface Pharmacy {
@@ -267,6 +407,10 @@ export interface InventorySession {
 export type AuditActionType =
   | 'USER_LOGIN'
   | 'USER_LOGOUT'
+  | 'USER_CREATE'
+  | 'USER_UPDATE'
+  | 'USER_DELETE'
+  | 'USER_PIN_RESET'
   | 'ROLE_CHANGE'
   | 'PRODUCT_CREATE'
   | 'PRODUCT_UPDATE'
@@ -279,7 +423,46 @@ export type AuditActionType =
   | 'INVENTORY_APPROVED'
   | 'SYNC_EVENT_REPLAYED'
   | 'SYNC_CONFLICT_RESOLVED'
-  | 'PHARMACY_SETTINGS_UPDATED';
+  | 'PHARMACY_SETTINGS_UPDATED'
+  | 'DB_BACKUP_EXPORT'
+  | 'DB_RESTORE'
+  | 'DB_RESET'
+  | 'DB_PURGE';
+
+export interface DatabaseStats {
+  pharmaciesCount: number;
+  usersCount: number;
+  productsCount: number;
+  batchesCount: number;
+  salesCount: number;
+  movementsCount: number;
+  receptionsCount: number;
+  inventoryCount: number;
+  auditLogsCount: number;
+  syncQueueCount: number;
+  estimatedSizeBytes: number;
+  lastBackupDate?: string;
+}
+
+export interface DatabaseBackupPayload {
+  version: string;
+  exportDate: string;
+  app: 'Muelo PHARM';
+  checksum: string;
+  data: {
+    pharmacies: Pharmacy[];
+    users: User[];
+    products: Product[];
+    batches: Batch[];
+    suppliers: Supplier[];
+    sales: Sale[];
+    stockMovements: StockMovement[];
+    receptions: Reception[];
+    inventorySessions: InventorySession[];
+    auditLogs: AuditLog[];
+    syncQueue: SyncEvent[];
+  };
+}
 
 export interface AuditLog {
   id: string;

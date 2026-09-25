@@ -6,6 +6,7 @@ import { ReceptionsView } from './components/ReceptionsView';
 import { InventoryView } from './components/InventoryView';
 import { AuditLogView } from './components/AuditLogView';
 import { ReportsView } from './components/ReportsView';
+import { AdminSettingsView } from './components/AdminSettingsView';
 import { ScopeAndAboutView } from './components/ScopeAndAboutView';
 import { OfflineSyncModal } from './components/OfflineSyncModal';
 import { store } from './services/store';
@@ -31,6 +32,7 @@ export default function App() {
         {currentTab === 'inventory' && <InventoryView />}
         {currentTab === 'audit' && <AuditLogView />}
         {currentTab === 'reports' && <ReportsView />}
+        {currentTab === 'admin' && <AdminSettingsView />}
         {currentTab === 'scope' && <ScopeAndAboutView />}
       </main>
 

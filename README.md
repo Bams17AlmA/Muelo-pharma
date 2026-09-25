@@ -21,25 +21,29 @@ Application Web Progressive (PWA) de gestion d'officine pharmaceutique conçue p
 
 1. **Multi-Établissements (Multi-tenants) :**  
    Gestion isolée par officine (ex: *Pharmacie du Peuple — Limete, Kinshasa* et *Pharmacie La Grâce — Goma, Nord-Kivu*), prête pour la fédération nationale.
-2. **Utilisateurs & Contrôle d'Accès (RBAC Moindre Privilège) :**  
-   Profils distincts : *Administrateur / Pharmacien Titulaire*, *Gestionnaire de Pharmacie*, et *Vendeur / Caissier*.
-3. **Référentiel Médicaments Conforme RDC :**  
+2. **Gestion des Utilisateurs, Rôles & Droits d'Accès (RBAC Moindre Privilège) :**  
+   Création et modification de comptes utilisateurs, attribution de rôles (*Administrateur / Titulaire*, *Gestionnaire de Pharmacie*, *Vendeur / Caissier*), matrice de 13 permissions granulaires avec dérogations personnalisées, codes PIN d'autorisation rapide, suspension de compte et protection anti-suppression du dernier administrateur.
+3. **Paramètres de l'Officine & Financiers :**  
+   Gestion des données légales de l'établissement (numéro d'autorisation DPS RDC, pharmacien responsable CNOP), taux de change dynamique USD/CDF, devises et fiscalité TVA.
+4. **Gestion Avancée de la Base de Données (DB) :**  
+   Statistiques en temps réel, sauvegarde complète instantanée en JSON avec checksum, restauration avec contrôle d'intégrité, explorateur de tables brutes, purge sécurisée des transactions de test et réinitialisation d'usine aux valeurs RDC certifiées.
+5. **Référentiel Médicaments Conforme RDC :**  
    Nom commercial, DCI (Dénomination Commune Internationale), forme galénique, dosage, conditionnement, fabricant, seuil de réapprovisionnement et conditions de conservation (Ambiante, Frigo 2–8°C, Abri lumière).
-4. **Fournisseurs & Réceptions avec Contrôle Strict :**  
+6. **Fournisseurs & Réceptions avec Contrôle Strict :**  
    Enregistrement des centrales publiques (FEDECAME, CAMEG) et grossistes privés ; contrôle à l'entrée du N° de lot fabricant, de la date de péremption et **blocage automatique immédiat en cas d'alerte de rappel sanitaire**.
-5. **Gestion des Stocks par Lot & Moteur FEFO :**  
+7. **Gestion des Stocks par Lot & Moteur FEFO :**  
    Attribution prioritaire *First-Expired, First-Out*, alertes graduées à 30 jours (Critique), 60 jours (Alerte) et 90 jours (Surveillance), historique complet des mouvements.
-6. **Caisse & Vente au Détail Rapide (< 2 secondes) :**  
+8. **Caisse & Vente au Détail Rapide (< 2 secondes) :**  
    Recherche instantanée, calcul bidevise (Franc Congolais CDF et Dollar US USD), calcul de monnaie, impression de ticket thermique conforme (avec mention des lots délivrés).
-7. **Annulation de Vente Sécurisée :**  
+9. **Annulation de Vente Sécurisée :**  
    Requiert obligatoirement le code PIN d'un Gestionnaire ou Administrateur avec motif consigné au registre.
-8. **Inventaire Tournant & Approbation des Écarts :**  
-   Comptage physique par lot, calcul d'écarts de stock et de valorisation, validation restreinte avec mise à jour automatique des stocks théoriques.
-9. **Mode Hors Ligne Total & File de Synchronisation Idempotente :**  
-   Persistance locale (IndexedDB / LocalStorage), file d'attente d'événements signés localement avec UUID. **Résolution explicite des conflits : aucun écrasement silencieux.**
-10. **Journal d'Audit Inaltérable (Append-Only) :**  
+10. **Inventaire Tournant & Approbation des Écarts :**  
+    Comptage physique par lot, calcul d'écarts de stock et de valorisation, validation restreinte avec mise à jour automatique des stocks théoriques.
+11. **Mode Hors Ligne Total & File de Synchronisation Idempotente :**  
+    Persistance locale (IndexedDB / LocalStorage), file d'attente d'événements signés localement avec UUID. **Résolution explicite des conflits : aucun écrasement silencieux.**
+12. **Journal d'Audit Inaltérable (Append-Only) :**  
     Traçabilité intégrale de toutes les opérations sensibles avec signature cryptographique SHA-256 scellant l'auteur et la date.
-11. **Rapports & Exports :**  
+13. **Rapports & Exports :**  
     Rapports journaliers de caisse, état valorisé des stocks, liste des péremptions imminentes, exports CSV et JSON.
 
 ---

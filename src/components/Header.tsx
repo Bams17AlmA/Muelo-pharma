@@ -12,6 +12,7 @@ import {
   FileBarChart,
   Info,
   Check,
+  Settings,
 } from 'lucide-react';
 import { Pharmacy, User, UserRole } from '../types/pharmacy';
 import { store } from '../services/store';
@@ -25,6 +26,7 @@ export type NavigationTab =
   | 'inventory'
   | 'audit'
   | 'reports'
+  | 'admin'
   | 'scope';
 
 interface HeaderProps {
@@ -288,6 +290,23 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <FileBarChart className="w-4 h-4" />
               <span>Rapports & Exports</span>
+            </button>
+
+            <button
+              onClick={() => onSelectTab('admin')}
+              className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-md transition-colors whitespace-nowrap ${
+                currentTab === 'admin'
+                  ? 'bg-purple-800 text-white shadow-xs'
+                  : 'text-purple-700 hover:text-purple-900 hover:bg-purple-100/60 bg-purple-50/70 border border-purple-200/50'
+              }`}
+            >
+              <Settings className="w-4 h-4 text-purple-400" />
+              <span>Administration & Paramètres</span>
+              {currentUser.role === 'ADMIN' && (
+                <span className="text-[9px] bg-purple-200 text-purple-900 px-1 rounded font-bold">
+                  Admin
+                </span>
+              )}
             </button>
 
             <button
