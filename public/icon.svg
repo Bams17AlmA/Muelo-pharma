@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e3a8a"/>
+      <stop offset="50%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#0f172a" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+  <!-- Background Rounded Shield -->
+  <rect width="512" height="512" rx="112" fill="url(#blueGrad)"/>
+  
+  <!-- Subtle Caduceus / Cross Container -->
+  <g filter="url(#shadow)">
+    <!-- Pharmacist Cross -->
+    <rect x="216" y="116" width="80" height="280" rx="20" fill="#ffffff"/>
+    <rect x="116" y="216" width="280" height="80" rx="20" fill="#ffffff"/>
+    
+    <!-- Central Hexagonal Pill Core in Congolese Gold/Yellow & Emerald Accent -->
+    <circle cx="256" cy="256" r="32" fill="#0284c7"/>
+    <!-- Capsule outline -->
+    <path d="M236 256 C236 245 245 236 256 236 C267 236 276 245 276 256 Z" fill="#38bdf8"/>
+    <path d="M236 256 C236 267 245 276 256 276 C267 276 276 267 276 256 Z" fill="#facc15"/>
+  </g>
+  
+  <!-- Subtle Letter M monogram at bottom -->
+  <text x="256" y="445" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="34" font-weight="800" fill="#e0f2fe" letter-spacing="4" text-anchor="middle">MUELO PHARM</text>
+</svg>
