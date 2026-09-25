@@ -761,6 +761,28 @@ class PharmacyDataStore {
     this.notify();
   }
 
+  public deletePharmacy(pharmacyId: string): { success: boolean; message: string } {
+    const pharmacies = this.getPharmacies();
+    if (pharmacies.length <= 1) {
+      return { success: false, message: 'Impossible de supprimer le seul établissement restant.' };
+    }
+    const current = this.getCurrentPharmacy();
+    if (current.id === pharmacyId) {
+      return { success: false, message: 'Veuillez basculer sur un autre établissement avant de supprimer celui-ci.' };
+    }
+    const target = pharmacies.find((p) => p.id === pharmacyId);
+    const filtered = pharmacies.filter((p) => p.id !== pharmacyId);
+    this.setItem(KEYS.PHARMACIES, filtered);
+    this.appendAuditLog({
+      actionType: 'PHARMACY_SETTINGS_UPDATED',
+      entityType: 'Pharmacy',
+      entityId: pharmacyId,
+      details: `Suppression de l'établissement pharmacie ${target?.name || pharmacyId}`,
+    });
+    this.notify();
+    return { success: true, message: 'Établissement supprimé avec succès.' };
+  }
+
   public getUsers(): User[] {
     return this.getItem(KEYS.USERS, INITIAL_USERS);
   }

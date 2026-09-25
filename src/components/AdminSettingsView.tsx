@@ -19,13 +19,17 @@ import {
   Search,
   Check,
   X,
-  FileCode,
   HardDrive,
   Eye,
   EyeOff,
-  Layers,
   Table,
-  BadgeAlert,
+  Plus,
+  MapPin,
+  Phone,
+  Mail,
+  Coins,
+  Store,
+  ExternalLink,
 } from 'lucide-react';
 import {
   User,
@@ -38,9 +42,10 @@ import {
   DatabaseBackupPayload,
 } from '../types/pharmacy';
 import { store } from '../services/store';
+import { generateUUID } from '../utils/fefo';
 
 export const AdminSettingsView: React.FC = () => {
-  const [activeSubTab, setActiveSubTab] = useState<'users' | 'permissions' | 'settings' | 'database'>('users');
+  const [activeSubTab, setActiveSubTab] = useState<'users' | 'permissions' | 'pharmacies' | 'settings' | 'database'>('users');
   const [, setTick] = useState(0);
 
   // Active pharmacy and user
@@ -53,12 +58,18 @@ export const AdminSettingsView: React.FC = () => {
   const [userSearch, setUserSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<'ALL' | UserRole>('ALL');
 
-  // Modals state
+  // Modals state for users
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [permissionsUser, setPermissionsUser] = useState<User | null>(null);
   const [pinResetUser, setPinResetUser] = useState<User | null>(null);
   const [deleteConfirmUser, setDeleteConfirmUser] = useState<User | null>(null);
+
+  // Modals state for pharmacies
+  const [showCreatePharmacyModal, setShowCreatePharmacyModal] = useState(false);
+  const [deleteConfirmPharmacy, setDeleteConfirmPharmacy] = useState<Pharmacy | null>(null);
+
+  // Database actions modals
   const [purgeConfirm, setPurgeConfirm] = useState(false);
   const [resetDbConfirm, setResetDbConfirm] = useState(false);
 
@@ -71,6 +82,24 @@ export const AdminSettingsView: React.FC = () => {
   const [newUserPharmacyId, setNewUserPharmacyId] = useState(currentPharmacy.id);
   const [formError, setFormError] = useState('');
 
+  // Form states for pharmacy creation
+  const [newPharmaCode, setNewPharmaCode] = useState('');
+  const [newPharmaName, setNewPharmaName] = useState('');
+  const [newPharmaLegal, setNewPharmaLegal] = useState('');
+  const [newPharmaLicense, setNewPharmaLicense] = useState('');
+  const [newPharmaChief, setNewPharmaChief] = useState('');
+  const [newPharmaAddress, setNewPharmaAddress] = useState('');
+  const [newPharmaCommune, setNewPharmaCommune] = useState('');
+  const [newPharmaCity, setNewPharmaCity] = useState('Kinshasa');
+  const [newPharmaProvince, setNewPharmaProvince] = useState('Kinshasa');
+  const [newPharmaPhone, setNewPharmaPhone] = useState('');
+  const [newPharmaEmail, setNewPharmaEmail] = useState('');
+  const [newPharmaCurrency, setNewPharmaCurrency] = useState<'CDF' | 'USD'>('CDF');
+  const [newPharmaExchangeRate, setNewPharmaExchangeRate] = useState<number>(2850);
+  const [newPharmaTaxRate, setNewPharmaTaxRate] = useState<number>(0);
+  const [newPharmaActivateNow, setNewPharmaActivateNow] = useState<boolean>(true);
+  const [pharmaFormError, setPharmaFormError] = useState<string>('');
+
   // Form state for PIN reset
   const [newPinCode, setNewPinCode] = useState('');
   const [pinError, setPinError] = useState('');
@@ -81,7 +110,8 @@ export const AdminSettingsView: React.FC = () => {
   // Visible PINs toggle
   const [showPins, setShowPins] = useState<Record<string, boolean>>({});
 
-  // Pharmacy settings form state
+  // Pharmacy settings form state (selected pharmacy to edit in settings tab)
+  const [selectedConfigPharmacyId, setSelectedConfigPharmacyId] = useState<string>(currentPharmacy.id);
   const [pharmacyForm, setPharmacyForm] = useState<Pharmacy>({ ...currentPharmacy });
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
 
@@ -96,10 +126,19 @@ export const AdminSettingsView: React.FC = () => {
     const unsubscribe = store.subscribe(() => {
       setTick((t) => t + 1);
       setDbStats(store.getDatabaseStats());
-      setPharmacyForm({ ...store.getCurrentPharmacy() });
+      const p = store.getPharmacies().find((x) => x.id === selectedConfigPharmacyId) || store.getCurrentPharmacy();
+      setPharmacyForm({ ...p });
     });
     return unsubscribe;
-  }, []);
+  }, [selectedConfigPharmacyId]);
+
+  // Update form when target pharmacy changes
+  const handleSelectPharmacyToEdit = (pharmaId: string) => {
+    setSelectedConfigPharmacyId(pharmaId);
+    const p = pharmacies.find((x) => x.id === pharmaId) || currentPharmacy;
+    setPharmacyForm({ ...p });
+    setSaveSuccessMsg('');
+  };
 
   // Filtered users
   const filteredUsers = users.filter((u) => {
@@ -116,6 +155,91 @@ export const AdminSettingsView: React.FC = () => {
   // Toggle pin visibility
   const togglePin = (userId: string) => {
     setShowPins((prev) => ({ ...prev, [userId]: !prev[userId] }));
+  };
+
+  // Open modal for creating a new pharmacy
+  const openCreatePharmacyModal = () => {
+    const nextNum = (pharmacies.length + 1).toString().padStart(3, '0');
+    setNewPharmaCode(`PH-KIN-${nextNum}`);
+    setNewPharmaName('');
+    setNewPharmaLegal('Pharmacie SARL');
+    setNewPharmaLicense(`MS-RDC/DPS/KIN/${Math.floor(1000 + Math.random() * 9000)}/2026`);
+    setNewPharmaChief('Dr. (Titulaire CNOP)');
+    setNewPharmaAddress('');
+    setNewPharmaCommune('Gombe');
+    setNewPharmaCity('Kinshasa');
+    setNewPharmaProvince('Kinshasa');
+    setNewPharmaPhone('+243 81 000 0000');
+    setNewPharmaEmail('contact@officine.cd');
+    setNewPharmaCurrency('CDF');
+    setNewPharmaExchangeRate(2850);
+    setNewPharmaTaxRate(0);
+    setNewPharmaActivateNow(true);
+    setPharmaFormError('');
+    setShowCreatePharmacyModal(true);
+  };
+
+  // Handle pharmacy creation
+  const handleCreatePharmacy = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPharmaFormError('');
+
+    if (!newPharmaName.trim() || !newPharmaCode.trim()) {
+      setPharmaFormError('Le code et le nom de l\'établissement sont obligatoires.');
+      return;
+    }
+
+    if (pharmacies.some((p) => p.code.toLowerCase() === newPharmaCode.trim().toLowerCase())) {
+      setPharmaFormError('Un établissement avec ce code existe déjà.');
+      return;
+    }
+
+    const newPharmacy: Pharmacy = {
+      id: generateUUID(),
+      code: newPharmaCode.trim().toUpperCase(),
+      name: newPharmaName.trim(),
+      legalEntity: newPharmaLegal.trim() || newPharmaName.trim(),
+      address: newPharmaAddress.trim() || 'Avenue Principale',
+      commune: newPharmaCommune.trim() || 'Commune',
+      city: newPharmaCity.trim() || 'Kinshasa',
+      province: newPharmaProvince.trim() || 'Kinshasa',
+      phone: newPharmaPhone.trim() || '+243 00 000 0000',
+      email: newPharmaEmail.trim() || 'contact@officine.cd',
+      licenseNumber: newPharmaLicense.trim() || 'MS-RDC/DPS/2026',
+      chiefPharmacist: newPharmaChief.trim() || 'Pharmacien Titulaire',
+      currencyDefault: newPharmaCurrency,
+      exchangeRateUsdToCdf: Number(newPharmaExchangeRate) || 2850,
+      taxRatePercent: Number(newPharmaTaxRate) || 0,
+    };
+
+    store.addPharmacy(newPharmacy);
+
+    if (newPharmaActivateNow) {
+      store.setCurrentPharmacy(newPharmacy.id);
+      setSelectedConfigPharmacyId(newPharmacy.id);
+      setPharmacyForm({ ...newPharmacy });
+    }
+
+    setShowCreatePharmacyModal(false);
+    setDbActionStatus({
+      type: 'success',
+      message: `Nouvel établissement "${newPharmacy.name}" (${newPharmacy.city}) créé avec succès !`,
+    });
+  };
+
+  // Handle pharmacy deletion
+  const handleDeletePharmacy = () => {
+    if (!deleteConfirmPharmacy) return;
+    const res = store.deletePharmacy(deleteConfirmPharmacy.id);
+    if (!res.success) {
+      alert(res.message);
+    } else {
+      setDbActionStatus({
+        type: 'success',
+        message: `Établissement "${deleteConfirmPharmacy.name}" supprimé avec succès.`,
+      });
+    }
+    setDeleteConfirmPharmacy(null);
   };
 
   // Handle user creation
@@ -147,7 +271,6 @@ export const AdminSettingsView: React.FC = () => {
       pharmacyId: newUserPharmacyId,
     });
 
-    // Reset form
     setNewUserName('');
     setNewUserEmail('');
     setNewUserPhone('');
@@ -222,7 +345,7 @@ export const AdminSettingsView: React.FC = () => {
   const handleSavePharmacySettings = (e: React.FormEvent) => {
     e.preventDefault();
     store.updatePharmacy(pharmacyForm);
-    setSaveSuccessMsg('Paramètres de l\'officine enregistrés avec succès !');
+    setSaveSuccessMsg(`Paramètres de l'officine "${pharmacyForm.name}" enregistrés avec succès !`);
     setTimeout(() => setSaveSuccessMsg(''), 4000);
   };
 
@@ -268,7 +391,6 @@ export const AdminSettingsView: React.FC = () => {
       }
     };
     fileReader.readAsText(file);
-    // Reset input
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -326,7 +448,7 @@ export const AdminSettingsView: React.FC = () => {
                 Administration & Paramètres Système
               </h1>
               <p className="text-xs text-slate-500">
-                Gestion des comptes utilisateurs, attribution des rôles & permissions, configuration officine et données DB.
+                Gestion des comptes, attribution des rôles, création d'établissements, configuration officine et gestion DB.
               </p>
             </div>
           </div>
@@ -335,7 +457,7 @@ export const AdminSettingsView: React.FC = () => {
         {/* Current User Badge / Warning */}
         <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 px-3 py-2 rounded-lg text-xs">
           <div>
-            <div className="text-[10px] uppercase font-semibold text-slate-400">Compte actuel</div>
+            <div className="text-[10px] uppercase font-semibold text-slate-400">Compte actif</div>
             <div className="font-bold text-slate-800">{currentUser.name}</div>
           </div>
           <span
@@ -349,7 +471,7 @@ export const AdminSettingsView: React.FC = () => {
           </span>
           {!isCurrentUserAdmin && (
             <span className="text-[11px] text-amber-600 font-medium">
-              (Mode lecture/simulation — basculez sur un compte Administrateur dans le menu supérieur pour toutes les opérations)
+              (Mode simulation — activez un compte ADMIN pour les opérations d'administration)
             </span>
           )}
         </div>
@@ -379,6 +501,18 @@ export const AdminSettingsView: React.FC = () => {
         >
           <KeyRound className="w-4 h-4" />
           <span>Matrice des Droits d'Accès</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('pharmacies')}
+          className={`flex items-center gap-2 px-4 py-3 text-xs sm:text-sm font-semibold border-b-2 transition-all whitespace-nowrap ${
+            activeSubTab === 'pharmacies'
+              ? 'border-blue-700 text-blue-700 bg-blue-50/50 rounded-t'
+              : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+          }`}
+        >
+          <Building2 className="w-4 h-4" />
+          <span>Établissements & Succursales ({pharmacies.length})</span>
         </button>
 
         <button
@@ -444,7 +578,7 @@ export const AdminSettingsView: React.FC = () => {
               className="w-full sm:w-auto flex items-center justify-center gap-2 px-3.5 py-2 bg-blue-700 hover:bg-blue-800 text-white font-semibold text-xs rounded-lg transition-colors shadow-xs"
             >
               <UserPlus className="w-4 h-4" />
-              <span>Créer un compte</span>
+              <span>Créer un compte utilisateur</span>
             </button>
           </div>
 
@@ -569,7 +703,6 @@ export const AdminSettingsView: React.FC = () => {
 
                           <td className="px-4 py-3 text-right">
                             <div className="flex items-center justify-end gap-1">
-                              {/* Edit details */}
                               <button
                                 onClick={() => {
                                   setEditingUser({ ...u });
@@ -581,7 +714,6 @@ export const AdminSettingsView: React.FC = () => {
                                 <Edit className="w-3.5 h-3.5" />
                               </button>
 
-                              {/* Reset PIN */}
                               <button
                                 onClick={() => {
                                   setPinResetUser(u);
@@ -594,7 +726,6 @@ export const AdminSettingsView: React.FC = () => {
                                 <KeyRound className="w-3.5 h-3.5" />
                               </button>
 
-                              {/* Delete user */}
                               <button
                                 onClick={() => setDeleteConfirmUser(u)}
                                 disabled={u.id === currentUser.id}
@@ -700,26 +831,212 @@ export const AdminSettingsView: React.FC = () => {
         </div>
       )}
 
-      {/* SUB-TAB 3: PHARMACY SETTINGS */}
+      {/* SUB-TAB 3: PHARMACIES (MULTI-TENANTS) MANAGEMENT */}
+      {activeSubTab === 'pharmacies' && (
+        <div className="space-y-4">
+          {/* Header Card with creation action */}
+          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="p-2 rounded-lg bg-blue-100 text-blue-700">
+                  <Building2 className="w-5 h-5" />
+                </span>
+                <div>
+                  <h2 className="text-base font-bold text-slate-900">
+                    Réseau d'Établissements & Succursales (Multi-tenants RDC)
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    Chaque officine dispose de ses propres stocks, caisses, utilisateurs et autorisations sanitaires isolées.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={openCreatePharmacyModal}
+              className="flex items-center gap-2 px-4 py-2.5 bg-blue-700 hover:bg-blue-800 text-white font-semibold text-xs rounded-lg shadow-xs transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Créer un Nouvel Établissement</span>
+            </button>
+          </div>
+
+          {/* Pharmacies Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {pharmacies.map((p) => {
+              const isCurrent = p.id === currentPharmacy.id;
+              const associatedUsersCount = users.filter((u) => u.pharmacyId === p.id).length;
+
+              return (
+                <div
+                  key={p.id}
+                  className={`bg-white rounded-xl border p-5 space-y-4 transition-shadow shadow-xs hover:shadow-md ${
+                    isCurrent ? 'border-blue-600 ring-2 ring-blue-600/10' : 'border-slate-200'
+                  }`}
+                >
+                  {/* Top: Name, code, active status badge */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-[10px] font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">
+                          {p.code}
+                        </span>
+                        {isCurrent && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            <span>Établissement Actif</span>
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="text-base font-bold text-slate-900 mt-1.5">{p.name}</h3>
+                      <p className="text-xs text-slate-500 font-medium">{p.legalEntity}</p>
+                    </div>
+
+                    <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
+                      <Store className="w-5 h-5" />
+                    </div>
+                  </div>
+
+                  {/* Details grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-1 border-t border-slate-100">
+                    <div className="flex items-start gap-2 text-slate-600">
+                      <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
+                      <div>
+                        <div>{p.address}</div>
+                        <div className="font-semibold text-slate-800">
+                          {p.commune}, {p.city} ({p.province})
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1 text-slate-600">
+                      <div className="flex items-center gap-1.5">
+                        <Phone className="w-3 h-3 text-slate-400 shrink-0" />
+                        <span>{p.phone}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 truncate">
+                        <Mail className="w-3 h-3 text-slate-400 shrink-0" />
+                        <span className="truncate">{p.email}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* License & Pharmacist */}
+                  <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-[11px] space-y-1">
+                    <div>
+                      <span className="text-slate-500 font-medium">N° Autorisation DPS RDC : </span>
+                      <strong className="text-slate-800">{p.licenseNumber}</strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 font-medium">Pharmacien Titulaire : </span>
+                      <strong className="text-blue-900">{p.chiefPharmacist}</strong>
+                    </div>
+                    <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 text-[10px]">
+                      <span className="text-slate-500">
+                        Taux officiel : <strong>{p.exchangeRateUsdToCdf.toLocaleString()} CDF = 1 USD</strong>
+                      </span>
+                      <span className="text-slate-500">
+                        Utilisateurs rattachés : <strong>{associatedUsersCount}</strong>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                    {isCurrent ? (
+                      <span className="text-[11px] text-blue-700 font-semibold flex items-center gap-1">
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Session active sur cette officine</span>
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          store.setCurrentPharmacy(p.id);
+                          setDbActionStatus({
+                            type: 'success',
+                            message: `Vous opérez désormais sur l'établissement "${p.name}".`,
+                          });
+                        }}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors"
+                      >
+                        Bascule / Sélectionner
+                      </button>
+                    )}
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => {
+                          handleSelectPharmacyToEdit(p.id);
+                          setActiveSubTab('settings');
+                        }}
+                        className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg text-slate-700 bg-slate-100 hover:bg-slate-200 font-medium transition-colors"
+                        title="Configurer les paramètres de cette pharmacie"
+                      >
+                        <Settings className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Configurer</span>
+                      </button>
+
+                      {pharmacies.length > 1 && !isCurrent && (
+                        <button
+                          onClick={() => setDeleteConfirmPharmacy(p)}
+                          className="p-1.5 text-slate-400 hover:text-rose-700 hover:bg-rose-50 rounded"
+                          title="Supprimer cet établissement"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* SUB-TAB 4: PHARMACY SETTINGS */}
       {activeSubTab === 'settings' && (
         <div className="space-y-4">
           <form onSubmit={handleSavePharmacySettings} className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+            {/* Top Selector: Choose which pharmacy to configure + Quick New Pharmacy button */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 gap-4">
               <div>
                 <h2 className="text-base font-bold text-slate-900">
                   Paramètres de l'Officine & Informations Légales (RDC)
                 </h2>
-                <p className="text-xs text-slate-500">
-                  Établissement actif : <span className="font-semibold text-blue-700">{currentPharmacy.name}</span>
-                </p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-xs text-slate-500">Configurer l'officine :</span>
+                  <select
+                    value={selectedConfigPharmacyId}
+                    onChange={(e) => handleSelectPharmacyToEdit(e.target.value)}
+                    className="px-2.5 py-1 text-xs border border-blue-300 bg-blue-50/50 rounded-md font-bold text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  >
+                    {pharmacies.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({p.city}) {p.id === currentPharmacy.id ? '· [ACTIF]' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
-              {saveSuccessMsg && (
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  <span>{saveSuccessMsg}</span>
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={openCreatePharmacyModal}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold rounded-lg transition-colors border border-slate-200"
+                >
+                  <Plus className="w-3.5 h-3.5 text-blue-700" />
+                  <span>Nouvel Établissement</span>
+                </button>
+
+                {saveSuccessMsg && (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold animate-in fade-in">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>{saveSuccessMsg}</span>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Grid Form */}
@@ -730,15 +1047,27 @@ export const AdminSettingsView: React.FC = () => {
                   1. Identification de l'Établissement
                 </h3>
 
-                <div>
-                  <label className="block text-slate-700 font-semibold mb-1">Nom commercial</label>
-                  <input
-                    type="text"
-                    value={pharmacyForm.name}
-                    onChange={(e) => setPharmacyForm({ ...pharmacyForm, name: e.target.value })}
-                    required
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-600"
-                  />
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="col-span-1">
+                    <label className="block text-slate-700 font-semibold mb-1">Code</label>
+                    <input
+                      type="text"
+                      value={pharmacyForm.code}
+                      onChange={(e) => setPharmacyForm({ ...pharmacyForm, code: e.target.value })}
+                      required
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-600 font-mono font-bold"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-slate-700 font-semibold mb-1">Nom commercial</label>
+                    <input
+                      type="text"
+                      value={pharmacyForm.name}
+                      onChange={(e) => setPharmacyForm({ ...pharmacyForm, name: e.target.value })}
+                      required
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-600"
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -833,6 +1162,7 @@ export const AdminSettingsView: React.FC = () => {
                     <option value="Kongo-Central">Kongo-Central (Matadi)</option>
                     <option value="Lualaba">Lualaba (Kolwezi)</option>
                     <option value="Tshopo">Tshopo (Kisangani)</option>
+                    <option value="Ituri">Ituri (Bunia)</option>
                   </select>
                 </div>
 
@@ -884,12 +1214,12 @@ export const AdminSettingsView: React.FC = () => {
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-600 font-mono font-semibold"
                   />
                   <span className="text-[10px] text-slate-400">
-                    Utilisé pour la conversion automatique en caisse
+                    Appliqué pour le calcul automatique bidevise en caisse
                   </span>
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 font-semibold mb-1">Devise par défaut</label>
+                  <label className="block text-slate-700 font-semibold mb-1">Devise principale</label>
                   <select
                     value={pharmacyForm.currencyDefault}
                     onChange={(e) =>
@@ -925,7 +1255,10 @@ export const AdminSettingsView: React.FC = () => {
             </div>
 
             {/* Save Button */}
-            <div className="flex justify-end pt-4 border-t border-slate-100">
+            <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+              <div className="text-xs text-slate-500">
+                Modification appliquée à l'établissement : <strong className="text-slate-800">{pharmacyForm.name}</strong>
+              </div>
               <button
                 type="submit"
                 className="flex items-center gap-2 px-5 py-2.5 bg-blue-700 hover:bg-blue-800 text-white font-semibold text-xs rounded-lg shadow-xs transition-colors"
@@ -938,7 +1271,7 @@ export const AdminSettingsView: React.FC = () => {
         </div>
       )}
 
-      {/* SUB-TAB 4: DATABASE & DATA MANAGEMENT */}
+      {/* SUB-TAB 5: DATABASE & DATA MANAGEMENT */}
       {activeSubTab === 'database' && (
         <div className="space-y-6">
           {/* Action Notification */}
@@ -987,6 +1320,11 @@ export const AdminSettingsView: React.FC = () => {
 
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
               <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                <div className="text-[10px] text-slate-500 uppercase font-semibold">Établissements (Officines)</div>
+                <div className="text-xl font-bold text-blue-800 mt-1">{dbStats.pharmaciesCount}</div>
+              </div>
+
+              <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
                 <div className="text-[10px] text-slate-500 uppercase font-semibold">Comptes Utilisateurs</div>
                 <div className="text-xl font-bold text-slate-900 mt-1">{dbStats.usersCount}</div>
               </div>
@@ -1027,11 +1365,6 @@ export const AdminSettingsView: React.FC = () => {
               </div>
 
               <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                <div className="text-[10px] text-slate-500 uppercase font-semibold">File de Synchro</div>
-                <div className="text-xl font-bold text-blue-700 mt-1">{dbStats.syncQueueCount}</div>
-              </div>
-
-              <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
                 <div className="text-[10px] text-slate-500 uppercase font-semibold">Dernière Sauvegarde</div>
                 <div className="text-xs font-semibold text-slate-700 mt-2 truncate">
                   {dbStats.lastBackupDate
@@ -1044,14 +1377,13 @@ export const AdminSettingsView: React.FC = () => {
 
           {/* Backup, Restore & Maintenance Actions */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Backup & Restore */}
             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-4">
               <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
                 <Download className="w-4 h-4 text-blue-700" />
                 <span>Sauvegarde & Restauration Complète (JSON)</span>
               </h3>
               <p className="text-xs text-slate-500">
-                Exportez une archive complète scellée contenant tous les médicaments, lots, ventes, utilisateurs et logs d'audit.
+                Exportez une archive complète scellée contenant tous les établissements, médicaments, lots, ventes, utilisateurs et logs d'audit.
               </p>
 
               <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
@@ -1077,7 +1409,6 @@ export const AdminSettingsView: React.FC = () => {
               </div>
             </div>
 
-            {/* Maintenance & Reset */}
             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-4">
               <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-amber-600" />
@@ -1120,7 +1451,6 @@ export const AdminSettingsView: React.FC = () => {
                 </p>
               </div>
 
-              {/* Table Selector */}
               <div className="flex items-center gap-2 text-xs">
                 <span className="text-slate-500 font-medium">Table :</span>
                 <select
@@ -1140,6 +1470,291 @@ export const AdminSettingsView: React.FC = () => {
 
             <div className="bg-slate-900 rounded-lg p-3 text-slate-200 font-mono text-[11px] max-h-72 overflow-y-auto scrollbar-thin">
               <pre>{JSON.stringify(getTablePreviewData(), null, 2)}</pre>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: CREATE PHARMACY ESTABLISHMENT */}
+      {showCreatePharmacyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
+          <div className="bg-white rounded-xl shadow-2xl max-w-xl w-full overflow-hidden max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-150">
+            <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2 font-bold text-sm">
+                <Building2 className="w-4 h-4 text-sky-400" />
+                <span>Création d'un Nouvel Établissement Pharmaceutique (RDC)</span>
+              </div>
+              <button
+                onClick={() => setShowCreatePharmacyModal(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreatePharmacy} className="p-6 overflow-y-auto space-y-4 text-xs flex-1">
+              {pharmaFormError && (
+                <div className="p-2.5 rounded bg-rose-50 border border-rose-200 text-rose-700 font-medium">
+                  {pharmaFormError}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-1">
+                    Code Officine <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="PH-KIN-003"
+                    value={newPharmaCode}
+                    onChange={(e) => setNewPharmaCode(e.target.value.toUpperCase())}
+                    required
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg font-mono font-bold focus:ring-2 focus:ring-blue-600"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-slate-700 font-semibold mb-1">
+                    Nom Commercial <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Pharmacie du Peuple — Masina"
+                    value={newPharmaName}
+                    onChange={(e) => setNewPharmaName(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-600"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-semibold mb-1">
+                  Raison Sociale / Entité Légale
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: Pharmacie du Peuple SARL"
+                  value={newPharmaLegal}
+                  onChange={(e) => setNewPharmaLegal(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-600"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-1">
+                    N° Autorisation DPS / Ministère de la Santé RDC <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="MS-RDC/DPS/KIN/0512/2026"
+                    value={newPharmaLicense}
+                    onChange={(e) => setNewPharmaLicense(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-1">
+                    Pharmacien Titulaire (CNOP) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Dr. Joseph Mbuyi (CNOP N° 2145/RDC)"
+                    value={newPharmaChief}
+                    onChange={(e) => setNewPharmaChief(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-600"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-semibold mb-1">Adresse Physique</label>
+                <input
+                  type="text"
+                  placeholder="Ex: 45, Boulevard Lumumba, Quartier Sans Fil"
+                  value={newPharmaAddress}
+                  onChange={(e) => setNewPharmaAddress(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-600"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-1">Commune</label>
+                  <input
+                    type="text"
+                    placeholder="Masina"
+                    value={newPharmaCommune}
+                    onChange={(e) => setNewPharmaCommune(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-1">Ville</label>
+                  <input
+                    type="text"
+                    placeholder="Kinshasa"
+                    value={newPharmaCity}
+                    onChange={(e) => setNewPharmaCity(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-1">Province (RDC)</label>
+                  <select
+                    value={newPharmaProvince}
+                    onChange={(e) => setNewPharmaProvince(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-600 bg-white"
+                  >
+                    <option value="Kinshasa">Kinshasa</option>
+                    <option value="Haut-Katanga">Haut-Katanga (Lubumbashi)</option>
+                    <option value="Nord-Kivu">Nord-Kivu (Goma)</option>
+                    <option value="Sud-Kivu">Sud-Kivu (Bukavu)</option>
+                    <option value="Kongo-Central">Kongo-Central (Matadi)</option>
+                    <option value="Lualaba">Lualaba (Kolwezi)</option>
+                    <option value="Tshopo">Tshopo (Kisangani)</option>
+                    <option value="Ituri">Ituri (Bunia)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-1">Téléphone de l'officine</label>
+                  <input
+                    type="text"
+                    placeholder="+243 81 234 5678"
+                    value={newPharmaPhone}
+                    onChange={(e) => setNewPharmaPhone(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-1">Email officiel</label>
+                  <input
+                    type="email"
+                    placeholder="masina@officine.cd"
+                    value={newPharmaEmail}
+                    onChange={(e) => setNewPharmaEmail(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-600"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-100">
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-1">Devise principale</label>
+                  <select
+                    value={newPharmaCurrency}
+                    onChange={(e) => setNewPharmaCurrency(e.target.value as any)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-600 bg-white"
+                  >
+                    <option value="CDF">Franc Congolais (CDF)</option>
+                    <option value="USD">Dollar Américain (USD)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-1">Taux 1 USD en CDF</label>
+                  <input
+                    type="number"
+                    value={newPharmaExchangeRate}
+                    onChange={(e) => setNewPharmaExchangeRate(parseFloat(e.target.value) || 2850)}
+                    min={100}
+                    step={10}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg font-mono font-semibold focus:ring-2 focus:ring-blue-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-1">Taux TVA</label>
+                  <select
+                    value={newPharmaTaxRate}
+                    onChange={(e) => setNewPharmaTaxRate(parseFloat(e.target.value))}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-600 bg-white"
+                  >
+                    <option value={0}>0% (Exonération)</option>
+                    <option value={16}>16% (TVA standard)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-lg">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={newPharmaActivateNow}
+                    onChange={(e) => setNewPharmaActivateNow(e.target.checked)}
+                    className="rounded text-blue-700 focus:ring-blue-600"
+                  />
+                  <span className="font-semibold text-blue-900">
+                    Définir immédiatement comme établissement actif dans ma session
+                  </span>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowCreatePharmacyModal(false)}
+                  className="px-4 py-2 border border-slate-200 text-slate-600 font-semibold rounded-lg hover:bg-slate-50"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-semibold rounded-lg shadow-xs"
+                >
+                  Créer l'Établissement
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: CONFIRM DELETE PHARMACY */}
+      {deleteConfirmPharmacy && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
+          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-5 space-y-4 text-xs animate-in fade-in zoom-in-95 duration-150">
+            <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center mx-auto">
+              <Trash2 className="w-5 h-5" />
+            </div>
+
+            <div className="text-center space-y-1">
+              <h3 className="text-sm font-bold text-slate-900">Supprimer cet établissement ?</h3>
+              <p className="text-slate-500">
+                Êtes-vous sûr de vouloir supprimer définitivement l'établissement{' '}
+                <strong className="text-slate-800">{deleteConfirmPharmacy.name}</strong> ({deleteConfirmPharmacy.code}) ?
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmPharmacy(null)}
+                className="w-full px-3.5 py-2 border border-slate-200 text-slate-600 font-semibold rounded-lg hover:bg-slate-50"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={handleDeletePharmacy}
+                className="w-full px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-lg shadow-xs"
+              >
+                Supprimer
+              </button>
             </div>
           </div>
         </div>
@@ -1241,7 +1856,7 @@ export const AdminSettingsView: React.FC = () => {
                     required
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg font-mono focus:ring-2 focus:ring-blue-600"
                   />
-                  <span className="text-[10px] text-slate-400">4 à 6 chiffres pour les validations rapides</span>
+                  <span className="text-[10px] text-slate-400">4 à 6 chiffres pour les validations de caisse</span>
                 </div>
               </div>
 

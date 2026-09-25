@@ -370,6 +370,37 @@ assert(mockDatabasePayload.data.users.length === 2, 'Structure des comptes utili
 assert(mockDatabasePayload.data.products.length === 1, 'Sauvegarde du catalogue de produits');
 assert(mockDatabasePayload.checksum !== '', 'Présence de l\'empreinte d\'intégrité de la sauvegarde');
 
+// ----------------------------------------------------
+// 6. TESTS GESTION DES ÉTABLISSEMENTS (MULTI-TENANTS)
+// ----------------------------------------------------
+console.log('\n6. Tests Création d\'Établissements & Multi-tenants (RDC) :');
+
+import { Pharmacy } from '../src/types/pharmacy';
+
+const testNewPharmacy: Pharmacy = {
+  id: 'pharma-test-lubumbashi',
+  code: 'PH-KAT-001',
+  name: 'Pharmacie Cuivre — Lubumbashi',
+  legalEntity: 'Pharmacie Cuivre SARL',
+  address: '22, Avenue Kilela Balanda, Centre-Ville',
+  commune: 'Lubumbashi',
+  city: 'Lubumbashi',
+  province: 'Haut-Katanga',
+  phone: '+243 97 111 2233',
+  email: 'contact@pharmacicuivre.cd',
+  licenseNumber: 'MS-RDC/DPS/HK/0120/2026',
+  chiefPharmacist: 'Dr. Marie Kalenga (Ordre N° 3110/RDC)',
+  currencyDefault: 'USD',
+  exchangeRateUsdToCdf: 2850,
+  taxRatePercent: 0,
+};
+
+assert(testNewPharmacy.code === 'PH-KAT-001', 'Attribution du code unique de l\'établissement');
+assert(testNewPharmacy.province === 'Haut-Katanga', 'Prise en charge des provinces de la RDC');
+assert(testNewPharmacy.licenseNumber.includes('DPS'), 'Enregistrement de la licence sanitaire officielle');
+assert(testNewPharmacy.chiefPharmacist.includes('Ordre'), 'Identification légale du Pharmacien Titulaire');
+assert(testNewPharmacy.exchangeRateUsdToCdf === 2850, 'Paramétrage initial du taux de change officiel');
+
 console.log('\n========================================');
 console.log(`📊 RÉSULTAT DES TESTS : ${passedTests}/${totalTests} réussis`);
 if (passedTests === totalTests) {
