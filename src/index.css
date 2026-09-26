@@ -184,3 +184,69 @@ footer {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
 }
+
+
+/* --- Muelo surface language: applies to existing feature screens without touching business logic --- */
+.muelo-main { padding-top: 18px; }
+.muelo-main > div { min-width: 0; }
+
+.muelo-main .bg-white {
+  background: rgba(255,255,255,.94);
+  border-color: var(--muelo-line);
+}
+.muelo-main .rounded-lg,
+.muelo-main .rounded-xl,
+.muelo-main .rounded-2xl { border-radius: var(--muelo-radius); }
+
+.muelo-main .shadow,
+.muelo-main .shadow-sm,
+.muelo-main .shadow-md,
+.muelo-main .shadow-lg {
+  box-shadow: var(--muelo-shadow);
+}
+
+.muelo-main input:not([type="checkbox"]):not([type="radio"]),
+.muelo-main select,
+.muelo-main textarea {
+  border-color: #dce5ef;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--muelo-ink);
+  min-height: 38px;
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+}
+.muelo-main input:not([type="checkbox"]):not([type="radio"]):focus,
+.muelo-main select:focus,
+.muelo-main textarea:focus {
+  outline: none;
+  border-color: #79aaf1;
+  box-shadow: 0 0 0 3px rgba(23,105,224,.10);
+}
+
+.muelo-main button {
+  transition: transform .12s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease;
+}
+.muelo-main button:active { transform: translateY(1px); }
+
+.muelo-main table { border-collapse: separate; border-spacing: 0; }
+.muelo-main thead th {
+  color: #718096;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  font-weight: 800;
+  background: #f7f9fc;
+}
+.muelo-main tbody tr { transition: background .12s ease; }
+.muelo-main tbody tr:hover { background: #f8fbff; }
+
+.muelo-main .text-blue-800 { color: var(--muelo-primary); }
+.muelo-main .bg-blue-800 { background: var(--muelo-primary); }
+.muelo-main .bg-blue-700 { background: #2878e8; }
+.muelo-main .border-blue-200 { border-color: #cfe0fb; }
+
+@media (max-width: 760px) {
+  .muelo-main { padding: 10px 8px 24px; }
+  .muelo-main .overflow-x-auto { -webkit-overflow-scrolling: touch; }
+  .muelo-main .grid { gap: 10px; }
+}
