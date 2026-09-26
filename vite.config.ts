@@ -13,7 +13,7 @@ export default defineConfig(() => ({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon.svg', 'logo.svg'],
+      includeAssets: ['icon.svg', 'logo.svg', 'logo-dark.svg'],
       manifest: {
         id: base,
         name: 'Muelo PHARM — Gestion de Pharmacie',
