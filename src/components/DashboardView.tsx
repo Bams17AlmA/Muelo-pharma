@@ -172,7 +172,7 @@ export const DashboardView: React.FC = () => {
               <YAxis tick={{ fill: 'var(--muelo-chart-text)', fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={value => value >= 1000 ? `${Math.round(value / 1000)}k` : String(value)} />
               <Tooltip
                 contentStyle={{ background: 'var(--muelo-chart-surface)', border: '1px solid var(--muelo-line)', borderRadius: 10, color: 'var(--muelo-ink)', fontSize: 11 }}
-                formatter={(value: number | undefined) => [formatCDF(value || 0), 'Recettes']}
+                formatter={(value) => [formatCDF(Number(value) || 0), 'Recettes']}
               />
               <Area type="monotone" dataKey="revenue" stroke="var(--muelo-chart-primary)" strokeWidth={3} fill="url(#mueloRevenueFill)" />
             </AreaChart>
@@ -188,7 +188,7 @@ export const DashboardView: React.FC = () => {
                 <YAxis type="category" dataKey="category" width={125} tick={{ fill: 'var(--muelo-chart-text)', fontSize: 9 }} axisLine={false} tickLine={false} />
                 <Tooltip
                   contentStyle={{ background: 'var(--muelo-chart-surface)', border: '1px solid var(--muelo-line)', borderRadius: 10, color: 'var(--muelo-ink)', fontSize: 11 }}
-                  formatter={(value: number | undefined) => [formatCDF(value || 0), 'Ventes']}
+                  formatter={(value) => [formatCDF(Number(value) || 0), 'Ventes']}
                 />
                 <Bar dataKey="revenue" fill="var(--muelo-chart-secondary)" radius={[0, 6, 6, 0]} barSize={22} />
               </BarChart>
@@ -205,7 +205,7 @@ export const DashboardView: React.FC = () => {
                 </Pie>
                 <Tooltip
                   contentStyle={{ background: 'var(--muelo-chart-surface)', border: '1px solid var(--muelo-line)', borderRadius: 10, color: 'var(--muelo-ink)', fontSize: 11 }}
-                  formatter={(value: number | undefined) => [value || 0, 'Références']}
+                  formatter={(value) => [Number(value) || 0, 'Références']}
                 />
               </PieChart>
             </ResponsiveContainer>
