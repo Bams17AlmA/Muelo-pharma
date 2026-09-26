@@ -139,11 +139,10 @@ export const DashboardView: React.FC = () => {
           <h1>Bonjour, {store.getCurrentUser().name.split(' ')[0]}</h1>
           <p>{pharmacy.name} · {pharmacy.commune}, {pharmacy.city}</p>
         </div>
-        <img
-          src={`${import.meta.env.BASE_URL}logo.svg`}
-          alt="Muelo PHARM"
-          className="muelo-dashboard-logo"
-        />
+        <picture className="muelo-dashboard-logo-wrap">
+          <source media="(prefers-color-scheme: dark)" srcSet={`${import.meta.env.BASE_URL}logo-dark.svg`} />
+          <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="Muelo PHARM" className="muelo-dashboard-logo" />
+        </picture>
       </section>
 
       <section className="muelo-dashboard-kpis">
