@@ -60,7 +60,7 @@ export const Header: React.FC<HeaderProps> = ({ currentTab, onSelectTab, onOpenS
           </button>
 
           <button className="muelo-brand" onClick={() => selectTab('dashboard')} aria-label="Muelo PHARM — Tableau de bord">
-            <img className="muelo-brand-logo" src={`${import.meta.env.BASE_URL}logo.svg`} alt="Muelo PHARM" />
+            <picture><source media="(prefers-color-scheme: dark)" srcSet={`${import.meta.env.BASE_URL}logo-dark.svg`} /><img className="muelo-brand-logo" src={`${import.meta.env.BASE_URL}logo.svg`} alt="Muelo PHARM" /></picture>
           </button>
 
           <div className="muelo-context">
