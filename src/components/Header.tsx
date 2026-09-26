@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import {
-  Building2, ChevronDown, User as UserIcon, ShoppingCart, Boxes, Truck,
+  Building2, ChevronDown, ShoppingCart, Boxes, Truck,
   ClipboardList, History, FileBarChart, Info, Check, Settings, Menu, X,
-  Wifi, WifiOff, Download, RefreshCw
+  LayoutDashboard, RefreshCw
 } from 'lucide-react';
 import { UserRole } from '../types/pharmacy';
 import { store } from '../services/store';
@@ -10,7 +10,7 @@ import { NetworkStatusBadge } from './NetworkStatusBadge';
 import { PWAInstallButton } from './PWAInstallButton';
 
 export type NavigationTab =
-  | 'pos' | 'stock' | 'receptions' | 'inventory' | 'audit' | 'reports' | 'admin' | 'scope';
+  | 'dashboard' | 'pos' | 'stock' | 'receptions' | 'inventory' | 'audit' | 'reports' | 'admin' | 'scope';
 
 interface HeaderProps {
   currentTab: NavigationTab;
@@ -19,6 +19,7 @@ interface HeaderProps {
 }
 
 const navItems: Array<{ id: NavigationTab; label: string; short: string; icon: React.ElementType }> = [
+  { id: 'dashboard', label: 'Tableau de bord', short: 'Accueil', icon: LayoutDashboard },
   { id: 'pos', label: 'Caisse', short: 'Vente', icon: ShoppingCart },
   { id: 'stock', label: 'Stocks & lots', short: 'Stocks', icon: Boxes },
   { id: 'receptions', label: 'Réceptions', short: 'Entrées', icon: Truck },
@@ -58,12 +59,8 @@ export const Header: React.FC<HeaderProps> = ({ currentTab, onSelectTab, onOpenS
             {mobileOpen ? <X /> : <Menu />}
           </button>
 
-          <button className="muelo-brand" onClick={() => selectTab('pos')} aria-label="Muelo PHARM — Caisse">
-            <span className="muelo-brand-mark">M<span>P</span></span>
-            <span className="muelo-brand-copy">
-              <strong>Muelo <em>PHARM</em></strong>
-              <small>Gestion d’officine</small>
-            </span>
+          <button className="muelo-brand" onClick={() => selectTab('dashboard')} aria-label="Muelo PHARM — Tableau de bord">
+            <picture><source media="(prefers-color-scheme: dark)" srcSet={`${import.meta.env.BASE_URL}logo-dark.svg`} /><img className="muelo-brand-logo" src={`${import.meta.env.BASE_URL}logo.svg`} alt="Muelo PHARM" /></picture>
           </button>
 
           <div className="muelo-context">

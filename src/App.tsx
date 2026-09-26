@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Header, NavigationTab } from './components/Header';
+import { DashboardView } from './components/DashboardView';
 import { POSView } from './components/POSView';
 import { StockView } from './components/StockView';
 import { ReceptionsView } from './components/ReceptionsView';
@@ -11,8 +12,17 @@ import { ScopeAndAboutView } from './components/ScopeAndAboutView';
 import { OfflineSyncModal } from './components/OfflineSyncModal';
 
 export default function App() {
-  const [currentTab, setCurrentTab] = useState<NavigationTab>('pos');
+  const [currentTab, setCurrentTab] = useState<NavigationTab>('dashboard');
   const [showSyncModal, setShowSyncModal] = useState(false);
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const target = (event as CustomEvent<string>).detail as NavigationTab;
+      setCurrentTab(target);
+    };
+    window.addEventListener('muelo:navigate', handler);
+    return () => window.removeEventListener('muelo:navigate', handler);
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col muelo-app">
@@ -23,6 +33,7 @@ export default function App() {
       />
 
       <main className="flex-1 pb-12 muelo-main">
+        {currentTab === 'dashboard' && <DashboardView />}
         {currentTab === 'pos' && <POSView />}
         {currentTab === 'stock' && <StockView />}
         {currentTab === 'receptions' && <ReceptionsView />}

@@ -13,7 +13,7 @@ export default defineConfig(() => ({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon.svg'],
+      includeAssets: ['icon.svg', 'logo.svg', 'logo-dark.svg'],
       manifest: {
         id: base,
         name: 'Muelo PHARM — Gestion de Pharmacie',
@@ -26,8 +26,8 @@ export default defineConfig(() => ({
         display: 'standalone',
         display_override: ['standalone', 'minimal-ui'],
         orientation: 'any',
-        theme_color: '#1e40af',
-        background_color: '#f8fafc',
+        theme_color: '#0b1930',
+        background_color: '#f4fbff',
         categories: ['business', 'productivity', 'medical'],
         icons: [
           {
