@@ -810,3 +810,56 @@ footer {
   .muelo-dashboard-bottom { grid-template-columns: 1fr; }
   .muelo-chart-wide { grid-column: span 1; }
 }
+
+
+.muelo-brand > picture { display:block; line-height:0; }
+.muelo-dashboard-logo-wrap { display:block; line-height:0; }
+.muelo-dashboard-logo-wrap .muelo-dashboard-logo { display:block; }
+
+@media (prefers-color-scheme: dark) {
+  .muelo-brand-logo { filter:none; }
+  .muelo-dashboard-logo { filter:none; }
+
+  .muelo-main .text-slate-900,
+  .muelo-main .text-slate-800,
+  .muelo-main .text-slate-700 { color: var(--muelo-ink) !important; }
+
+  .muelo-main .text-slate-600,
+  .muelo-main .text-slate-500,
+  .muelo-main .text-slate-400 { color: var(--muelo-muted) !important; }
+
+  .muelo-main .bg-white,
+  .muelo-main .bg-slate-50,
+  .muelo-main .bg-slate-100 { background: var(--muelo-surface) !important; }
+
+  .muelo-main .bg-slate-200 { background: var(--muelo-surface-2) !important; }
+  .muelo-main .border-slate-100,
+  .muelo-main .border-slate-200,
+  .muelo-main .border-slate-300 { border-color: var(--muelo-line) !important; }
+
+  .muelo-main .hover\:bg-slate-50:hover,
+  .muelo-main .hover\:bg-slate-100:hover,
+  .muelo-main .hover\:bg-slate-200:hover { background: #17263a !important; }
+
+  .muelo-main .text-blue-900,
+  .muelo-main .text-blue-800,
+  .muelo-main .text-blue-700 { color: #62a7ff !important; }
+
+  .muelo-main .bg-blue-800,
+  .muelo-main .bg-blue-700 { background: var(--muelo-primary) !important; }
+
+  .muelo-main .bg-red-50,
+  .muelo-main .bg-amber-50,
+  .muelo-main .bg-yellow-50,
+  .muelo-main .bg-emerald-50 { background: color-mix(in srgb, currentColor 8%, var(--muelo-surface)) !important; }
+
+  .muelo-main input:not([type="checkbox"]):not([type="radio"]),
+  .muelo-main select,
+  .muelo-main textarea { background: #101a29 !important; color: var(--muelo-ink) !important; border-color: var(--muelo-line) !important; }
+
+  .muelo-main option { background: #111a28; color: var(--muelo-ink); }
+}
+
+@media (max-width: 760px) {
+  .muelo-dashboard-logo-wrap { display:none; }
+}
