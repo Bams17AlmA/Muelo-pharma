@@ -6,54 +6,51 @@ import {VitePWA} from 'vite-plugin-pwa';
 
 const base = process.env.GITHUB_ACTIONS === 'true' ? '/Muelo-pharma/' : '/';
 
-export default defineConfig(() => {
-  return {
-    base,
-    plugins: [
-      react(),
-      tailwindcss(),
-      VitePWA({
-        registerType: 'autoUpdate',
-        includeAssets: ['icon.svg', 'pwa-192x192.png', 'pwa-512x512.png'],
-        manifest: {
-          id: base,
-          name: 'Muelo PHARM — Gestion de Pharmacie',
-          short_name: 'MueloPHARM',
-          description: 'Solution numérique de vente au détail et de gestion des stocks des produits pharmaceutiques en RDC',
-          theme_color: '#1e40af',
-          background_color: '#f8fafc',
-          display: 'standalone',
-          start_url: base,
-          scope: base,
-          icons: [
-            {
-              src: `${base}icon.svg`,
-              sizes: '192x192 512x512',
-              type: 'image/svg+xml',
-              purpose: 'any',
-            },
-            {
-              src: `${base}icon.svg`,
-              sizes: '512x512',
-              type: 'image/svg+xml',
-              purpose: 'maskable',
-            },
-          ],
-        },
-        devOptions: {
-          enabled: true,
-          type: 'module',
-        },
-      }),
-    ],
-    resolve: {
-      alias: {
-        '@': path.resolve(__dirname, '.'),
+export default defineConfig(() => ({
+  base,
+  plugins: [
+    react(),
+    tailwindcss(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['icon.svg'],
+      manifest: {
+        id: base,
+        name: 'Muelo PHARM — Gestion de Pharmacie',
+        short_name: 'Muelo PHARM',
+        description: 'Application de gestion de pharmacie : ventes, stocks par lots, péremptions et suivi des opérations en RDC.',
+        lang: 'fr-CD',
+        dir: 'ltr',
+        start_url: base,
+        scope: base,
+        display: 'standalone',
+        display_override: ['standalone', 'minimal-ui'],
+        orientation: 'any',
+        theme_color: '#1e40af',
+        background_color: '#f8fafc',
+        categories: ['business', 'productivity', 'medical'],
+        icons: [
+          {
+            src: `${base}icon.svg`,
+            sizes: 'any',
+            type: 'image/svg+xml',
+            purpose: 'any',
+          },
+        ],
       },
+      devOptions: {
+        enabled: true,
+        type: 'module',
+      },
+    }),
+  ],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, '.'),
     },
-    server: {
-      hmr: process.env.DISABLE_HMR !== 'true',
-      watch: process.env.DISABLE_HMR === 'true' ? null : {},
-    },
-  };
-});
+  },
+  server: {
+    hmr: process.env.DISABLE_HMR !== 'true',
+    watch: process.env.DISABLE_HMR === 'true' ? null : {},
+  },
+}));
